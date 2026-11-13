@@ -1,0 +1,5 @@
+.env
+__pycache__/
+*.pyc
+results/aws_client_state.json
+results/aws_inference.jsonl

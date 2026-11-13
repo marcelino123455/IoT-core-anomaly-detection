@@ -1,0 +1,52 @@
+{
+  "dataset_rows_raw": 4261,
+  "valid_rows": 4261,
+  "on_rows": 3927,
+  "train_rows": 2748,
+  "calibration_rows": 589,
+  "test_rows": 590,
+  "model": "IsolationForest (CPU)",
+  "features": [
+    "temperatura_C",
+    "aceleracion_x",
+    "aceleracion_y",
+    "aceleracion_z",
+    "corriente_mV"
+  ],
+  "calibration_threshold_p99": 0.5282206179002987,
+  "test_flag_rate_pct": 1.1864406779661016,
+  "best_trial": 12,
+  "best_hyperparameters": {
+    "n_estimators": 400,
+    "max_samples": 256,
+    "max_features": 1.0
+  },
+  "best_validation_metrics": {
+    "trial": 12,
+    "n_estimators": 400,
+    "max_samples": 256,
+    "max_features": 1.0,
+    "validation_false_positive_rate": 0.010169491525423728,
+    "synthetic_detection_rate": 0.8305084745762712,
+    "selection_utility": 0.8101694915254237,
+    "eligible": true,
+    "threshold": 0.5282206179002987
+  },
+  "last_trial": 12,
+  "last_hyperparameters": {
+    "n_estimators": 400,
+    "max_samples": 256,
+    "max_features": 1.0
+  },
+  "model_selection_note": "Seleccion basada en falsos positivos normales y anomalías sinteticas; sin etiquetas reales no prueba eficacia ante fallas.",
+  "pca_explained_variance_ratio": [
+    0.6915157890950743,
+    0.2682990510568357
+  ],
+  "limitations": [
+    "Estados missing/unknown excluidos del entrenamiento",
+    "Sin fallas reales etiquetadas no se puede medir recall ni precisión",
+    "Tasa de detección no es probabilidad de anomalía",
+    "No usar como único mecanismo de apagado de seguridad"
+  ]
+}

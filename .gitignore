@@ -1,0 +1,18 @@
+# --- Secretos ---
+# Clave de comandos (CommandApiKey) y parametros de deploy
+infra/samconfig.toml
+# Certificados y clave privada del Thing de AWS IoT
+no-son-keys/
+# WiFi + certificados del ESP32 (src/VentiSet_ESP32-data-and-aws, main-only-aws, ...)
+**/secrets.h
+# Por si aparecen certificados sueltos en otra carpeta
+*.key
+*.pem
+*.crt
+
+# --- Build / entornos ---
+infra/.aws-sam/
+__pycache__/
+*.pyc
+.venv/
+venv/

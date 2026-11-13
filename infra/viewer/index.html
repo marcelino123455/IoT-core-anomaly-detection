@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VentiSet Monitor</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7385;
+    --border: #e1e4ea; --ok: #1f8a4c; --bad: #c8322f; --warn: #b7791f;
+    --line: #3867d6; --thr: #c8322f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b1f27; --text: #e6e9ef; --muted: #8e96a8;
+      --border: #2b313c; --ok: #4cc47f; --bad: #f06a66; --warn: #e0a84a;
+      --line: #7c9cf2; --thr: #f06a66;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .value { font-size: 24px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); }
+  section { margin-top: 16px; }
+  svg { width: 100%; height: 180px; display: block; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 500; }
+  #err { color: var(--bad); margin-top: 8px; min-height: 1em; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>VentiSet Monitor</h1>
+    <span class="muted">dispositivo <b id="dev">–</b> · se actualiza cada 3 s · <span id="updated">–</span></span>
+  </header>
+
+  <div class="grid">
+    <div class="card"><div class="label">Estado</div><div class="value" id="status">–</div></div>
+    <div class="card"><div class="label">Score / umbral</div><div class="value" id="score">–</div></div>
+    <div class="card"><div class="label">Anomalías seguidas</div><div class="value" id="consec">–</div></div>
+    <div class="card"><div class="label">Ventilador</div><div class="value" id="fan">–</div></div>
+    <div class="card"><div class="label">Última lectura</div><div class="value" id="age">–</div></div>
+  </div>
+
+  <section class="card">
+    <div class="label">Score de las últimas lecturas (línea roja = umbral)</div>
+    <svg id="chart" viewBox="0 0 600 180" preserveAspectRatio="none" role="img" aria-label="Score vs umbral"></svg>
+  </section>
+
+  <section class="card">
+    <div class="label">Últimas predicciones</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Hora</th><th>Resultado</th><th>Score</th><th>Temp °C</th>
+          <th>Acel X</th><th>Acel Y</th><th>Acel Z</th><th>Corriente mV</th><th>Seguidas</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+  <div id="err"></div>
+</main>
+
+<script>
+const params = new URLSearchParams(location.search);
+const device = params.get("device") || "esp32-26";
+document.getElementById("dev").textContent = device;
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 2) => (typeof v === "number" ? v.toFixed(d) : "–");
+let lastTs = null;
+
+function drawChart(preds) {
+  const svg = $("chart");
+  const pts = preds.filter(p => typeof p.score === "number").slice().reverse();
+  if (!pts.length) { svg.innerHTML = ""; return; }
+  const thr = pts[pts.length - 1].threshold;
+  const vals = pts.map(p => p.score).concat([thr]);
+  const lo = Math.min(...vals) * 0.95, hi = Math.max(...vals) * 1.05;
+  const W = 600, H = 180, pad = 8;
+  const x = i => pts.length === 1 ? W / 2 : pad + i * (W - 2 * pad) / (pts.length - 1);
+  const y = v => H - pad - (v - lo) / (hi - lo || 1) * (H - 2 * pad);
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.score).toFixed(1)}`).join("");
+  const dots = pts.map((p, i) =>
+    `<circle cx="${x(i).toFixed(1)}" cy="${y(p.score).toFixed(1)}" r="3"
+      fill="var(${p.is_anomaly ? "--bad" : "--ok"})"><title>${fmt(p.score, 3)}</title></circle>`).join("");
+  svg.innerHTML =
+    `<line x1="0" x2="${W}" y1="${y(thr)}" y2="${y(thr)}" stroke="var(--thr)" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>
+     <path d="${line}" fill="none" stroke="var(--line)" stroke-width="2" vector-effect="non-scaling-stroke"/>${dots}`;
+}
+
+function render(data) {
+  const preds = data.predictions || [];
+  const p = preds[0];
+  $("consec").textContent = data.consecutive_anomalies ?? "–";
+  $("consec").className = "value " + ((data.consecutive_anomalies || 0) >= 3 ? "bad" : "");
+  if (p) {
+    lastTs = p.ts_ms;
+    $("status").textContent = p.is_anomaly ? "ANOMALÍA" : "NORMAL";
+    $("status").className = "value " + (p.is_anomaly ? "bad" : "ok");
+    $("score").textContent = `${fmt(p.score, 3)} / ${fmt(p.threshold, 3)}`;
+    $("fan").textContent = p.estado_ventilador || "–";
+    $("fan").className = "value " + (p.shutdown_requested ? "warn" : "");
+  }
+  $("rows").innerHTML = preds.map(r => {
+    const rd = r.reading || {};
+    return `<tr>
+      <td>${new Date(r.ts_ms).toLocaleTimeString()}</td>
+      <td class="${r.is_anomaly ? "bad" : "ok"}">${r.is_anomaly ? "anomalía" : "normal"}${r.shutdown_requested ? (r.shutdown_sent ? " · OFF enviado" : " · OFF preparado") : ""}</td>
+      <td>${fmt(r.score, 3)}</td><td>${fmt(rd.temperatura_C)}</td>
+      <td>${fmt(rd.aceleracion_x)}</td><td>${fmt(rd.aceleracion_y)}</td><td>${fmt(rd.aceleracion_z)}</td>
+      <td>${fmt(rd.corriente_mV, 0)}</td><td>${r.consecutive_anomalies ?? "–"}</td></tr>`;
+  }).join("") || `<tr><td colspan="9" class="muted">Sin predicciones todavía</td></tr>`;
+  drawChart(preds);
+}
+
+function tickAge() {
+  if (!lastTs) return;
+  const s = Math.round((Date.now() - lastTs) / 1000);
+  $("age").textContent = s < 60 ? `hace ${s} s` : s < 3600 ? `hace ${Math.round(s / 60)} min` : `hace ${Math.round(s / 3600)} h`;
+  $("age").className = "value " + (s > 15 ? "warn" : "");
+}
+
+async function refresh() {
+  try {
+    const r = await fetch(`api?device=${encodeURIComponent(device)}&limit=30`, { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    render(await r.json());
+    $("updated").textContent = "actualizado " + new Date().toLocaleTimeString();
+    $("err").textContent = "";
+  } catch (e) {
+    $("err").textContent = "No se pudo actualizar: " + e.message;
+  }
+}
+
+refresh();
+setInterval(refresh, 3000);
+setInterval(tickAge, 1000);
+</script>
+</body>
+</html>

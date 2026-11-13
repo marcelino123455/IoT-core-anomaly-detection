@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  VentiSet - inferencia de anomalias (IsolationForest) sobre lecturas del ESP32
+  que llegan por AWS IoT Core. IoT Rule -> Lambda (contenedor) -> DynamoDB (+ OFF por MQTT si se activa).
+
+Parameters:
+  ReadingsTopic:
+    Type: String
+    Default: esp32/pub
+    Description: Topico MQTT donde publica el ESP32 sus lecturas.
+  CommandTopic:
+    Type: String
+    Default: esp32/sub
+    Description: Topico al que esta suscrito el ESP32 (para la orden OFF).
+  CommandApiKey:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Clave para POST /api/command (cabecera X-Api-Key). Esta en samconfig.toml.
+  IotDataEndpoint:
+    Type: String
+    Description: "Endpoint ATS de IoT (aws iot describe-endpoint --endpoint-type iot:Data-ATS), sin https://"
+  ConsecutiveAnomalies:
+    Type: Number
+    Default: 3
+    Description: Anomalias seguidas (estando ENCENDIDO) para preparar la orden OFF.
+  EnableRemoteShutdown:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Si es 'true' publica {"message":"OFF"} al CommandTopic. Dejar en false hasta validar en banco.
+  PredictionTtlDays:
+    Type: Number
+    Default: 30
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 1024
+    Architectures: [x86_64]
+
+Resources:
+  InferenceTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      # Provisionado para entrar en la capa gratuita (25 RCU + 25 WCU por cuenta/region).
+      # Cada lectura del ESP32 = 2 escrituras (contador + prediccion): a 1 lectura/s ~2 WCU.
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
+  InferenceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Description: Inferencia VentiSet (IsolationForest best_model.joblib)
+      # Invocacion asincrona desde la IoT Rule: una lectura vieja no sirve para
+      # decidir un apagado, y reintentar puede contar una anomalia dos veces.
+      EventInvokeConfig:
+        MaximumRetryAttempts: 0          # si falla, no se reintenta
+        MaximumEventAgeInSeconds: 60     # si espera mas de 60 s en la cola, se descarta
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InferenceTable
+          IOT_DATA_ENDPOINT: !Ref IotDataEndpoint
+          COMMAND_TOPIC: !Ref CommandTopic
+          CONSECUTIVE_ANOMALIES: !Ref ConsecutiveAnomalies
+          ENABLE_REMOTE_SHUTDOWN: !Ref EnableRemoteShutdown
+          PREDICTION_TTL_DAYS: !Ref PredictionTtlDays
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref InferenceTable
+        - Statement:
+            - Effect: Allow
+              Action: iot:Publish
+              Resource: !Sub arn:${AWS::Partition}:iot:${AWS::Region}:${AWS::AccountId}:topic/${CommandTopic}
+      Events:
+        SensorReadings:
+          Type: IoTRule
+          Properties:
+            AwsIotSqlVersion: '2016-03-23'
+            Sql: !Sub "SELECT *, clientid() AS client_id, timestamp() AS received_at FROM '${ReadingsTopic}'"
+    Metadata:
+      DockerContext: ./inference
+      Dockerfile: Dockerfile
+      DockerTag: python3.12-v1
+
+  # Visor web de solo lectura: pagina HTML + /api con las ultimas predicciones.
+  ViewerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Zip
+      Runtime: python3.12
+      Handler: app.handler
+      CodeUri: ./viewer
+      MemorySize: 256
+      Timeout: 10
+      Description: API VentiSet (lee DynamoDB + comandos ON/OFF al ESP32)
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InferenceTable
+          DEFAULT_DEVICE: esp32-26
+          CONSECUTIVE_ANOMALIES: !Ref ConsecutiveAnomalies
+          IOT_DATA_ENDPOINT: !Ref IotDataEndpoint
+          COMMAND_TOPIC: !Ref CommandTopic
+          COMMAND_API_KEY: !Ref CommandApiKey
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref InferenceTable
+        - Statement:
+            - Effect: Allow
+              Action: iot:Publish
+              Resource: !Sub arn:${AWS::Partition}:iot:${AWS::Region}:${AWS::AccountId}:topic/${CommandTopic}
+      FunctionUrlConfig:
+        AuthType: NONE   # publica: leer es libre; los comandos piden X-Api-Key
+        # CORS para que otra web (el gemelo digital) pueda consumir la API desde el navegador.
+        # Cuando el gemelo tenga dominio fijo, cambia "*" por ese dominio.
+        Cors:
+          AllowOrigins: ["*"]
+          AllowMethods: ["GET", "POST"]
+          AllowHeaders: ["content-type", "x-api-key"]
+          MaxAge: 300
+
+Outputs:
+  ViewerUrl:
+    Description: Abre esta URL en el navegador para ver las predicciones
+    Value: !GetAtt ViewerFunctionUrl.FunctionUrl
+  InferenceFunctionName:
+    Value: !Ref InferenceFunction
+  InferenceTableName:
+    Value: !Ref InferenceTable

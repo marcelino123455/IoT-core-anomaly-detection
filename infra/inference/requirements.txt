@@ -1,0 +1,6 @@
+# scikit-learn DEBE coincidir con la version que serializo best_model.joblib (1.9.1)
+scikit-learn==1.9.1
+numpy>=2,<3
+pandas>=2.2,<3
+joblib>=1.4,<2
+# boto3 ya viene en la imagen base de Lambda

@@ -1,0 +1,11 @@
+{
+  "device": "esp32-26",
+  "temperatura_C": 26.56,
+  "aceleracion_x": -8.74,
+  "aceleracion_y": -2.84,
+  "aceleracion_z": -1.38,
+  "corriente_mV": 1304.0,
+  "estado_ventilador": "ENCENDIDO",
+  "client_id": "esp32-26",
+  "received_at": 1762886319188
+}

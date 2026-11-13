@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VentiSet Twin Test</title>
+<style>
+  :root {
+    --bg: #f4f5f8; --card: #fff; --text: #1c2230; --muted: #6a7284; --border: #e0e3ea;
+    --ok: #1f8a4c; --bad: #c8322f; --warn: #b7791f; --off: #9aa1b0; --accent: #3867d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11141a; --card: #1a1e26; --text: #e6e9ef; --muted: #8d95a7; --border: #2a303b;
+      --ok: #4cc47f; --bad: #f06a66; --warn: #e0a84a; --off: #5d6474; --accent: #7c9cf2;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .bar input { flex: 1 1 260px; min-width: 0; padding: 8px 10px; border-radius: 8px;
+               border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; }
+  .bar input.dev { flex: 0 1 140px; }
+  .bar button { padding: 8px 14px; border-radius: 8px; border: 0; background: var(--accent);
+                color: #fff; font: inherit; cursor: pointer; }
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 14px; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); } .warn { color: var(--warn); } .muted { color: var(--muted); }
+
+  /* Ventilador (mini gemelo) */
+  .twin { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .fan { width: 220px; height: 220px; }
+  .fan .ring { fill: none; stroke-width: 10; stroke: var(--off); transition: stroke .3s; }
+  .fan .blades { transform-origin: 110px 110px; fill: var(--muted); }
+  .fan.on .blades { animation: spin .6s linear infinite; }
+  .fan.on.alert .blades { animation-duration: .25s; }
+  .fan.on .ring { stroke: var(--ok); }
+  .fan.alert .ring { stroke: var(--bad); }
+  .fan.critical .ring { stroke: var(--bad); animation: pulse .6s ease-in-out infinite alternate; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { from { stroke-opacity: 1; } to { stroke-opacity: .25; } }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600;
+           border: 1px solid currentColor; }
+  .dots { display: flex; gap: 6px; margin-top: 6px; }
+  .dots span { width: 14px; height: 14px; border-radius: 50%; background: var(--border); }
+  .dots span.hit { background: var(--bad); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .meter { height: 8px; border-radius: 4px; background: var(--border); position: relative; margin-top: 8px; overflow: hidden; }
+  .meter i { position: absolute; inset: 0 auto 0 0; background: var(--ok); border-radius: 4px; transition: width .3s; }
+  .meter i.bad { background: var(--bad); }
+  .meter b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--text); }
+  svg.chart { width: 100%; height: 150px; display: block; margin-top: 6px; }
+  .log { font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; color: var(--muted);
+         max-height: 140px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 6px 0 0; }
+  .stack { display: grid; gap: 14px; }
+  .control { width: 100%; border-top: 1px solid var(--border); padding-top: 12px; display: grid; gap: 8px; }
+  .control input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+                   background: var(--bg); color: var(--text); font: inherit; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btns button { padding: 10px; border: 0; border-radius: 8px; font: 600 15px system-ui, sans-serif;
+                 color: #fff; cursor: pointer; }
+  .btns button:disabled { opacity: .5; cursor: wait; }
+  .btn-on { background: var(--ok); } .btn-off { background: var(--bad); }
+  .cmd-msg { font-size: 13px; min-height: 1.2em; }
+  .sensors { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px 14px; margin-top: 8px; }
+  .sensors .value { font-size: 20px; }
+  .minis { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 8px; }
+  .mini .head { display: flex; justify-content: space-between; font-size: 13px; }
+  .mini svg { width: 100%; height: 70px; display: block; margin-top: 2px; }
+  .mini .range { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>VentiSet · prueba de la API del gemelo</h1>
+
+  <form class="bar" id="cfg">
+    <input id="url" placeholder="https://xxxx.lambda-url.us-east-1.on.aws" aria-label="URL de la API">
+    <input id="device" class="dev" value="esp32-26" aria-label="Dispositivo">
+    <button>Conectar</button>
+  </form>
+
+  <div class="layout">
+    <div class="card twin">
+      <svg class="fan" id="fan" viewBox="0 0 220 220" aria-label="Ventilador">
+        <circle class="ring" cx="110" cy="110" r="100"/>
+        <g class="blades">
+          <ellipse cx="110" cy="62" rx="20" ry="44"/>
+          <ellipse cx="110" cy="62" rx="20" ry="44" transform="rotate(120 110 110)"/>
+          <ellipse cx="110" cy="62" rx="20" ry="44" transform="rotate(240 110 110)"/>
+          <circle cx="110" cy="110" r="16"/>
+        </g>
+      </svg>
+      <span class="badge muted" id="conn">sin datos</span>
+      <div class="muted" id="age">–</div>
+      <div>
+        <div class="label" style="text-align:center">Anomalías seguidas</div>
+        <div class="dots" id="dots"></div>
+      </div>
+      <div class="control">
+        <div class="label">Control del ventilador</div>
+        <input id="apiKey" type="password" placeholder="X-Api-Key" aria-label="Clave de comandos" autocomplete="off">
+        <div class="btns">
+          <button type="button" class="btn-on" data-action="ON">ON</button>
+          <button type="button" class="btn-off" data-action="OFF">OFF</button>
+        </div>
+        <div class="muted cmd-msg" id="cmdMsg"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="grid">
+        <div class="card"><div class="label">Ventilador</div><div class="value" id="fanState">–</div></div>
+        <div class="card"><div class="label">Diagnóstico</div><div class="value" id="diag">–</div></div>
+        <div class="card">
+          <div class="label">Score / umbral</div><div class="value" id="score">–</div>
+          <div class="meter"><i id="scoreBar" style="width:0"></i><b id="thrMark" style="left:50%"></b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Sensores · última lectura</div>
+        <div class="sensors">
+          <div><div class="label">Temperatura</div><div class="value" id="temp">–</div></div>
+          <div><div class="label">Corriente</div><div class="value" id="cur">–</div></div>
+          <div><div class="label">Acel X</div><div class="value" id="ax">–</div></div>
+          <div><div class="label">Acel Y</div><div class="value" id="ay">–</div></div>
+          <div><div class="label">Acel Z</div><div class="value" id="az">–</div></div>
+          <div><div class="label">|a| total</div><div class="value" id="vib">–</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Sensores · historial (últimas 30 lecturas con el ventilador encendido)</div>
+        <div class="minis" id="minis"></div>
+      </div>
+
+      <div class="card">
+        <div class="label">Historial de score (/api/history, cada 5 s) · línea roja = umbral</div>
+        <svg class="chart" id="chart" viewBox="0 0 600 150" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="card">
+        <div class="label">Peticiones</div>
+        <pre class="log" id="log"></pre>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const DEFAULT_URL = "https://6whtx5hzyyqq7ch4b7f6o622m40kzrxw.lambda-url.us-east-1.on.aws";
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+$("url").value = store.get("ventiset.url") || DEFAULT_URL;
+$("device").value = store.get("ventiset.device") || "esp32-26";
+
+let timers = [];
+const fmt = (v, d = 2) => (typeof v === "number" ? v.toFixed(d) : "–");
+
+function log(msg, cls = "") {
+  const line = `${new Date().toLocaleTimeString()}  ${msg}\n`;
+  const el = $("log");
+  el.textContent = (line + el.textContent).split("\n").slice(0, 40).join("\n");
+}
+
+async function call(path) {
+  const base = $("url").value.trim().replace(/\/+$/, "");
+  const dev = encodeURIComponent($("device").value.trim() || "esp32-26");
+  const t0 = performance.now();
+  let r;
+  try {
+    r = await fetch(`${base}${path}${path.includes("?") ? "&" : "?"}device=${dev}`, { cache: "no-store" });
+  } catch (e) {
+    log(`${path} → error de red/CORS (${e.message}). ¿Desplegaste la versión con CORS?`);
+    throw e;
+  }
+  const ms = Math.round(performance.now() - t0);
+  const body = await r.json().catch(() => ({}));
+  log(`${path} → ${r.status} en ${ms} ms${r.ok ? "" : " · " + (body.error || "")}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return body;
+}
+
+function renderLatest(s) {
+  const fan = $("fan");
+  const on = s.online && s.fan === "ENCENDIDO";
+  const anomaly = !!(s.prediction && s.prediction.is_anomaly);
+  const critical = s.consecutive_anomalies >= s.shutdown_threshold;
+  fan.classList.toggle("on", on);
+  fan.classList.toggle("alert", on && anomaly);
+  fan.classList.toggle("critical", on && critical);
+
+  $("conn").textContent = s.online ? "ONLINE" : (s.last_seen_ms ? "OFFLINE" : "sin datos");
+  $("conn").className = "badge " + (s.online ? "ok" : "muted");
+  $("age").textContent = s.age_s == null ? "nunca envió datos" : `última lectura hace ${fmt(s.age_s, 1)} s`;
+
+  $("dots").innerHTML = Array.from({ length: s.shutdown_threshold }, (_, i) =>
+    `<span class="${i < s.consecutive_anomalies ? "hit" : ""}"></span>`).join("");
+
+  $("fanState").textContent = s.fan || "–";
+  $("fanState").className = "value " + (s.fan === "ENCENDIDO" ? "ok" : "muted");
+
+  if (!s.online) { $("diag").textContent = "sin señal"; $("diag").className = "value muted"; }
+  else if (!s.prediction) { $("diag").textContent = "no evaluado"; $("diag").className = "value muted"; }
+  else if (critical) { $("diag").textContent = "CRÍTICO"; $("diag").className = "value bad"; }
+  else { $("diag").textContent = anomaly ? "anomalía" : "normal"; $("diag").className = "value " + (anomaly ? "bad" : "ok"); }
+
+  const rd = s.reading || {};
+  $("temp").textContent = rd.temperatura_C != null ? `${fmt(rd.temperatura_C)} °C` : "–";
+  $("cur").textContent = rd.corriente_mV != null ? `${fmt(rd.corriente_mV, 0)} mV` : "–";
+  $("ax").textContent = rd.aceleracion_x != null ? `${fmt(rd.aceleracion_x)} m/s²` : "–";
+  $("ay").textContent = rd.aceleracion_y != null ? `${fmt(rd.aceleracion_y)} m/s²` : "–";
+  $("az").textContent = rd.aceleracion_z != null ? `${fmt(rd.aceleracion_z)} m/s²` : "–";
+  $("vib").textContent = rd.aceleracion_x != null
+    ? `${fmt(Math.hypot(rd.aceleracion_x, rd.aceleracion_y, rd.aceleracion_z))} m/s²` : "–";
+
+  const p = s.prediction;
+  if (p) {
+    $("score").textContent = `${fmt(p.score, 3)} / ${fmt(p.threshold, 3)}`;
+    const max = Math.max(p.threshold * 2, p.score);
+    $("scoreBar").style.width = `${Math.min(100, p.score / max * 100)}%`;
+    $("scoreBar").className = p.is_anomaly ? "bad" : "";
+    $("thrMark").style.left = `${p.threshold / max * 100}%`;
+  } else {
+    $("score").textContent = "–"; $("scoreBar").style.width = "0";
+  }
+}
+
+const SENSORS = [
+  ["temperatura_C", "Temperatura", "°C", 2],
+  ["corriente_mV", "Corriente", "mV", 0],
+  ["aceleracion_x", "Acel X", "m/s²", 2],
+  ["aceleracion_y", "Acel Y", "m/s²", 2],
+  ["aceleracion_z", "Acel Z", "m/s²", 2],
+];
+
+function renderSensorHistory(pts) {
+  const W = 300, H = 70, pad = 5;
+  $("minis").innerHTML = SENSORS.map(([key, name, unit, d]) => {
+    const s = pts.map(p => p.reading && p.reading[key]).filter(v => typeof v === "number");
+    if (!s.length) return `<div class="mini"><div class="head"><b>${name}</b><span class="muted">sin datos</span></div></div>`;
+    const lo = Math.min(...s), hi = Math.max(...s), span = hi - lo || 1;
+    const x = i => s.length === 1 ? W / 2 : pad + i * (W - 2 * pad) / (s.length - 1);
+    const y = v => H - pad - (v - lo) / span * (H - 2 * pad);
+    const path = s.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    return `<div class="mini">
+      <div class="head"><b>${name}</b><span>${s[s.length - 1].toFixed(d)} ${unit}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+      </svg>
+      <div class="range">mín ${lo.toFixed(d)} · máx ${hi.toFixed(d)} ${unit}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderHistory(h) {
+  const all = (h.predictions || []).slice().reverse();
+  renderSensorHistory(all);
+  const pts = all.filter(p => typeof p.score === "number");
+  const svg = $("chart");
+  if (!pts.length) { svg.innerHTML = ""; return; }
+  const thr = pts[pts.length - 1].threshold;
+  const vals = pts.map(p => p.score).concat(thr);
+  const lo = Math.min(...vals) * 0.95, hi = Math.max(...vals) * 1.05;
+  const W = 600, H = 150, pad = 8;
+  const x = i => pts.length === 1 ? W / 2 : pad + i * (W - 2 * pad) / (pts.length - 1);
+  const y = v => H - pad - (v - lo) / (hi - lo || 1) * (H - 2 * pad);
+  svg.innerHTML =
+    `<line x1="0" x2="${W}" y1="${y(thr)}" y2="${y(thr)}" stroke="var(--bad)" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"/>
+     <path d="${pts.map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p.score)}`).join("")}" fill="none"
+       stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>` +
+    pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.score)}" r="3" fill="var(${p.is_anomaly ? "--bad" : "--ok"})"/>`).join("");
+}
+
+function start() {
+  timers.forEach(clearInterval);
+  store.set("ventiset.url", $("url").value.trim());
+  store.set("ventiset.device", $("device").value.trim());
+  const latest = () => call("/api/latest").then(s => { renderLatest(s); checkPending(s); }).catch(() => {});
+  const history = () => call("/api/history?limit=30").then(renderHistory).catch(() => {});
+  latest(); history();
+  timers = [setInterval(latest, 1000), setInterval(history, 5000)];
+}
+
+// ---------- Comandos ON/OFF ----------
+$("apiKey").value = store.get("ventiset.apiKey") || "";
+let pending = null;  // {action, t} hasta que /api/latest confirme el cambio
+
+async function sendCommand(action) {
+  const key = $("apiKey").value.trim();
+  if (!key) { $("cmdMsg").textContent = "Pon la X-Api-Key primero."; return; }
+  store.set("ventiset.apiKey", key);
+  const base = $("url").value.trim().replace(/\/+$/, "");
+  document.querySelectorAll(".btns button").forEach(b => b.disabled = true);
+  $("cmdMsg").textContent = `Enviando ${action}...`;
+  const t0 = performance.now();
+  try {
+    const r = await fetch(`${base}/api/command`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": key },
+      body: JSON.stringify({ action }),
+    });
+    const body = await r.json().catch(() => ({}));
+    log(`POST /api/command ${action} → ${r.status} en ${Math.round(performance.now() - t0)} ms${r.ok ? "" : " · " + (body.error || "")}`);
+    if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
+    pending = { action, t: Date.now() };
+    $("cmdMsg").textContent = `${action} enviado. Esperando confirmación del ESP32...`;
+  } catch (e) {
+    $("cmdMsg").textContent = "Error: " + e.message;
+  } finally {
+    document.querySelectorAll(".btns button").forEach(b => b.disabled = false);
+  }
+}
+
+function checkPending(s) {
+  if (!pending) return;
+  const want = pending.action === "ON" ? "ENCENDIDO" : "APAGADO";
+  const waited = (Date.now() - pending.t) / 1000;
+  if (s.fan === want && s.last_seen_ms > pending.t) {
+    $("cmdMsg").textContent = `Confirmado: ventilador ${want} (${waited.toFixed(1)} s).`;
+    pending = null;
+  } else if (waited > 10) {
+    $("cmdMsg").textContent = `Sin confirmación tras 10 s. ¿El ESP32 está online?`;
+    pending = null;
+  }
+}
+
+document.querySelectorAll(".btns button").forEach(b =>
+  b.addEventListener("click", () => sendCommand(b.dataset.action)));
+
+$("cfg").addEventListener("submit", e => { e.preventDefault(); start(); });
+start();
+</script>
+</body>
+</html>
