@@ -1,0 +1,183 @@
+\documentclass[aspectratio=169]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{tikz}
+
+% ---------- Paleta verde ----------
+\definecolor{verde1}{HTML}{00D9A5}
+\definecolor{verde2}{HTML}{4DE8C0}
+\definecolor{verde3}{HTML}{80F0D4}
+\definecolor{verde4}{HTML}{B3F7E5}
+\definecolor{verde5}{HTML}{E6FFF7}
+\definecolor{verdeosc}{HTML}{00876A} % para texto legible
+
+% ---------- Estilo general ----------
+\usetheme{default}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{frametitle}{fg=black}
+\setbeamerfont{frametitle}{series=\bfseries,size=\Large}
+\setbeamercolor{structure}{fg=verde1}
+\setbeamercolor{block title}{bg=verde1,fg=white}
+\setbeamercolor{block body}{bg=verde5,fg=black}
+\setbeamercolor{block title alerted}{bg=verdeosc,fg=white}
+\setbeamercolor{block body alerted}{bg=verde4,fg=black}
+\setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamertemplate{itemize items}[circle]
+\setbeamercolor{section in toc}{fg=black}
+
+% Barra superior y pie con logo en diapositivas normales
+\setbeamertemplate{frametitle}{%
+  \vspace*{0.4cm}\insertframetitle\par
+  \vspace*{-0.15cm}{\color{verde1}\rule{2.5cm}{2pt}}}
+\setbeamertemplate{background}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[verde1] (current page.north west) rectangle ([yshift=-0.15cm]current page.north east);
+    \fill[verde2] ([xshift=-2.2cm]current page.south east) -- (current page.south east) -- ([yshift=1.6cm]current page.south east) -- cycle;
+    \fill[verde4] ([xshift=-3.4cm]current page.south east) -- ([xshift=-2.2cm]current page.south east) -- ([yshift=1.6cm]current page.south east) -- ([yshift=2.2cm]current page.south east) -- cycle;
+  \end{tikzpicture}}
+\setbeamertemplate{footline}{%
+  \hspace{0.4cm}\raisebox{0.15cm}{\includegraphics[height=0.55cm]{imagenes/logo_utec.png}}%
+  \hfill{\scriptsize\color{gray}\insertframenumber}\hspace{1.2cm}\vspace{0.1cm}}
+
+% ---------- Datos ----------
+\newcommand{\etiq}[2]{{\color{verde1}\textbf{#1:}} \textbf{#2}\\[0.12cm]}
+
+\begin{document}
+
+% ================= CARÁTULA =================
+{
+\setbeamertemplate{background}{}
+\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+  % bloques diagonales verdes (lado derecho)
+  \fill[verde5] ([xshift=6.0cm]current page.north) -- (current page.north east) -- (current page.south east) -- ([xshift=1.0cm]current page.south) -- cycle;
+  \fill[verde4] ([xshift=7.2cm]current page.north) -- (current page.north east) -- (current page.south east) -- ([xshift=2.6cm]current page.south) -- ([xshift=4.6cm]current page.center) -- cycle;
+  \fill[verde3] ([xshift=1.5cm]current page.center) -- ([xshift=4.6cm]current page.center) -- ([xshift=2.6cm]current page.south) -- ([xshift=-0.6cm]current page.south) -- cycle;
+  \fill[verde2] ([xshift=-1.6cm]current page.north east) -- (current page.north east) -- ([yshift=-3.8cm]current page.north east) -- cycle;
+  \fill[verde1] ([xshift=-0.9cm,yshift=-1.0cm]current page.north east) -- ([yshift=-1.0cm]current page.north east) -- ([yshift=-5.4cm]current page.north east) -- ([xshift=-0.9cm,yshift=-3.4cm]current page.north east) -- cycle;
+  \fill[verde1] ([xshift=4.6cm]current page.center) -- ([xshift=6.8cm,yshift=1.2cm]current page.center) -- ([xshift=4.8cm,yshift=-4.0cm]current page.center) -- ([xshift=2.6cm]current page.south) -- cycle;
+
+  % título
+  \node[anchor=north west, text width=7cm, align=left, font=\LARGE\bfseries]
+    at ([xshift=0.9cm,yshift=-0.9cm]current page.north west)
+    {TÍTULO DE LA PRESENTACIÓN};
+
+  % datos
+  \node[anchor=north west, text width=8.5cm, font=\footnotesize, align=left]
+    at ([xshift=0.9cm,yshift=-3.6cm]current page.north west) {%
+    \etiq{CURSO}{NOMBRE DEL CURSO}
+    \etiq{ASESOR}{NOMBRE DEL ASESOR}
+    \etiq{ALUMNO}{NOMBRE DEL ALUMNO}
+    \etiq{CICLO}{AAAA-N}};
+
+  % logo
+  \node[anchor=south west] at ([xshift=0.6cm,yshift=0.4cm]current page.south west)
+    {\includegraphics[height=1.4cm]{imagenes/logo_utec.png}};
+\end{tikzpicture}
+\end{frame}
+}
+
+% ================= CONTENIDO =================
+\begin{frame}{Contenido}
+  \tableofcontents
+\end{frame}
+
+\section{Introducción}
+\begin{frame}{Introducción}
+  \begin{itemize}
+    \item Primer punto de la introducción.
+    \item Segundo punto.
+    \item Tercer punto.
+  \end{itemize}
+\end{frame}
+
+\section{Desarrollo}
+\begin{frame}{Desarrollo}
+  \begin{block}{Objetivo}
+    Texto del objetivo.
+  \end{block}
+  \begin{alertblock}{Nota}
+    Texto de la nota.
+  \end{alertblock}
+\end{frame}
+
+\begin{frame}{Dos columnas}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \textbf{Columna izquierda}
+    \begin{itemize}
+      \item Elemento 1
+      \item Elemento 2
+    \end{itemize}
+    \column{0.5\textwidth}
+    \textbf{Columna derecha}
+    \begin{itemize}
+      \item Elemento 1
+      \item Elemento 2
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+\section{Conclusión}
+{
+\setbeamertemplate{background}{\begin{tikzpicture}[remember picture,overlay]
+  \fill[verde1] (current page.south west) rectangle (current page.north east);
+  \fill[verde2] ([xshift=5cm]current page.north) -- (current page.north east) -- (current page.south east) -- ([xshift=1cm]current page.south) -- cycle;
+  \fill[verde3] ([xshift=7cm]current page.north) -- (current page.north east) -- (current page.south east) -- ([xshift=4cm]current page.south) -- cycle;
+\end{tikzpicture}}
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay,line join=round,line cap=round]
+  \begin{scope}[shift={([xshift=-4.2cm,yshift=-2.2cm]current page.center)},scale=0.9]
+    % sombra
+    \fill[verdeosc,opacity=0.25] (0.9,-0.15) ellipse (2.4 and 0.22);
+    \tikzset{piel/.style={fill=verde5,draw=verdeosc,very thick}}
+    % cola
+    \fill[piel] (-0.2,2.1) .. controls (-1.2,1.9) and (-2.2,1.2) .. (-2.9,0.6)
+      .. controls (-2.0,0.9) and (-1.0,1.2) .. (0.0,1.3) -- cycle;
+    % piernas (antes del cuerpo, para que su parte de arriba quede tapada)
+    \fill[piel] (0.4,1.3) -- (0.35,-0.1) -- (0.95,-0.1) -- (0.95,1.3) -- cycle;
+    \fill[piel] (1.15,1.3) -- (1.1,-0.1) -- (1.7,-0.1) -- (1.65,1.3) -- cycle;
+    % cuerpo inclinado
+    \fill[piel,rotate around={30:(0.8,1.9)}] (0.8,1.9) ellipse (1.35 and 0.85);
+    % cuello
+    \fill[piel] (1.2,2.3) -- (1.7,3.4) -- (2.5,3.1) -- (1.9,1.9) -- cycle;
+    % muslo (dentro del cuerpo, sobre la pierna)
+    \fill[piel] (0.75,1.55) circle (0.48);
+    % garras de los pies
+    \foreach \x in {0.37,0.6,0.83,1.12,1.35,1.58} \fill[white,draw=verdeosc,thin] (\x,-0.1) -- ++(0.06,-0.12) -- ++(0.06,0.12) -- cycle;
+    % mandíbula inferior (boca abierta)
+    \fill[piel,rounded corners=6pt] (1.9,3.2) -- (3.5,3.05) -- (3.35,2.7) -- (2.0,2.7) -- cycle;
+    \fill[pink!60,rounded corners=4pt] (2.3,3.15) -- (3.35,3.06) -- (3.2,2.9) -- (2.4,2.92) -- cycle;
+    % dientes inferiores
+    \foreach \x in {2.55,2.85,3.15} \fill[white,draw=verdeosc,thin] (\x,3.07) -- ++(0.07,0.15) -- ++(0.07,-0.15) -- cycle;
+    % cráneo
+    \fill[piel,rounded corners=10pt] (1.6,3.2) -- (1.75,4.1) -- (3.75,4.0) -- (3.9,3.3) -- cycle;
+    % dientes superiores
+    \foreach \x in {2.4,2.7,3.0,3.3,3.6} \fill[white,draw=verdeosc,thin] (\x,3.27) -- ++(0.07,-0.17) -- ++(0.07,0.17) -- cycle;
+    % ojo y fosa nasal
+    \fill[white,draw=verdeosc,thick] (2.45,3.72) circle (0.2);
+    \fill[black] (2.52,3.73) circle (0.1); \fill[white] (2.55,3.77) circle (0.03);
+    \fill[verdeosc] (3.6,3.82) ellipse (0.07 and 0.04);
+    % bracitos
+    \draw[verdeosc,line width=4pt] (1.95,2.35) -- (2.35,2.15) -- (2.45,2.3);
+    \draw[verde5,line width=2pt] (1.95,2.35) -- (2.35,2.15) -- (2.45,2.3);
+    % manchas
+    \fill[verde3] (0.4,2.1) circle (0.2); \fill[verde3] (1.0,2.4) circle (0.14);
+    \fill[verde3] (0.9,1.7) circle (0.17); \fill[verde3] (2.6,3.55) circle (0.08);
+    % púas en la espalda
+    \foreach \x/\y/\r in {-0.6/1.85/20,0.0/2.25/25,0.55/2.6/30,1.05/2.95/40,1.45/3.45/55}
+      \fill[verdeosc,rotate around={\r:(\x,\y)}] (\x,\y) -- ++(0.14,0.26) -- ++(0.14,-0.26) -- cycle;
+    % globo de diálogo: primero la punta, luego el globo encima
+    \fill[white,draw=verdeosc,very thick] (6.4,4.6) -- (6.4,4.0) -- (4.0,3.4) -- cycle;
+    \node[fill=white,draw=verdeosc,very thick,rounded corners=12pt,inner sep=10pt,
+          font=\Huge\bfseries,text=verdeosc] at (8.2,4.4) {¡Gracias!};
+  \end{scope}
+\end{tikzpicture}
+\end{frame}
+}
+
+\end{document}

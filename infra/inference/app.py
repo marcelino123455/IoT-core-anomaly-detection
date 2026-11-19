@@ -33,6 +33,11 @@ FEATURES = ARTIFACT["features"]
 THRESHOLD = float(ARTIFACT["threshold"])
 CAL_SCORES = np.asarray(ARTIFACT["calibration_scores"])
 VERSION = ARTIFACT.get("version", "unknown")
+# Campos extra del firmware (ventana de vibracion + diagnostico). Se GUARDAN en DynamoDB
+# aunque el modelo actual no los use, para reentrenar y para el dashboard.
+EXTRA_FIELDS = ["vibracion_pico", "vibracion_std", "acel_media_x", "acel_media_y", "acel_media_z",
+                "muestras_vib", "muestras_descartadas", "errores_i2c", "mpu_reconfig"]
+STORED_FIELDS = list(dict.fromkeys([*FEATURES, *EXTRA_FIELDS]))
 
 TABLE = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
 _endpoint = os.environ.get("IOT_DATA_ENDPOINT", "").strip()
@@ -61,9 +66,9 @@ def predict(rows: list[dict]) -> list[dict]:
 
 
 def _reading(sample: dict) -> dict:
-    """Features numericas finitas de la lectura, como Decimal para DynamoDB."""
+    """Campos numericos finitos de la lectura (features + extra), como Decimal para DynamoDB."""
     out = {}
-    for c in FEATURES:
+    for c in STORED_FIELDS:
         v = sample.get(c)
         if isinstance(v, (int, float)) and not isinstance(v, bool) and np.isfinite(v):
             out[c] = Decimal(str(v))
@@ -138,7 +143,7 @@ def handler(event, context):
 
         TABLE.put_item(Item=json.loads(json.dumps({
             "pk": f"DEVICE#{device}", "sk": f"PRED#{int(time.time()*1000):015d}#{sample_id}",
-            **result, "reading": {c: sample.get(c) for c in FEATURES},
+            **result, "reading": {c: sample.get(c) for c in STORED_FIELDS if sample.get(c) is not None},
             "expires_at": int(time.time()) + TTL_DAYS * 86400}), parse_float=Decimal))
         results.append(result)
 

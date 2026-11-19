@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Arquitectura VentiSet</title>
+<style>
+  body { margin: 0; background: #fff; font-family: "Amazon Ember", "Helvetica Neue", Arial, sans-serif; color: #232f3e; }
+  #c { position: relative; width: 1680px; height: 790px; }
+  svg.wires { position: absolute; inset: 0; }
+  .box { position: absolute; border: 2px solid #232f3e; }
+  .box .hdr { position: absolute; top: 0; left: 0; display: flex; align-items: center; gap: 8px;
+              font-size: 15px; font-weight: 700; padding: 0 10px 0 0; background: #fff; }
+  .box .hdr img { width: 34px; height: 34px; }
+  .dev { border-color: #7aa116; border-style: solid; }
+  .dev .hdr { background: #7aa116; color: #fff; padding: 6px 12px; }
+  .cloud .hdr { color: #232f3e; }
+  .ext { border-color: #8c4fff; border-style: dashed; }
+  .ext .hdr { background: #8c4fff; color: #fff; padding: 6px 12px; }
+  .node { position: absolute; width: 200px; margin-left: -100px; text-align: center; }
+  .node img { width: 64px; height: 64px; display: block; margin: 0 auto 6px; }
+  .node b { display: block; font-size: 15px; }
+  .node span { display: block; font-size: 12.5px; color: #545b64; line-height: 1.35; }
+  .lbl { position: absolute; font-size: 12.5px; line-height: 1.3; background: #fff; padding: 1px 4px; white-space: nowrap; }
+  .lbl.o { color: #c25e00; }
+  .n { display: inline-block; width: 19px; height: 19px; border-radius: 50%; background: #ff9900; color: #232f3e;
+       font-weight: 700; font-size: 12px; text-align: center; line-height: 19px; margin-right: 4px; }
+  .chip { display: inline-block; border: 1px solid #7aa116; color: #3d5a08; border-radius: 4px; padding: 2px 6px;
+          font-size: 12px; margin: 2px; background: #f4f9ea; }
+  code { font-family: Menlo, Consolas, monospace; font-size: 11.5px; }
+  .sup { position: absolute; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #545b64; }
+  .sup img { width: 40px; height: 40px; }
+  .sup b { color: #232f3e; display: block; font-size: 13px; }
+  .divider { position: absolute; border-top: 1px dashed #aab7b8; }
+</style></head><body>
+<div id="c">
+  <!-- Grupos -->
+  <div class="box dev" style="left:16px; top:110px; width:262px; height:520px;">
+    <div class="hdr">Dispositivo (borde)</div>
+  </div>
+  <div class="box cloud" style="left:318px; top:30px; width:1062px; height:740px;">
+    <div class="hdr"><img src="icons/AWSCloudlogo.svg" alt="">AWS Cloud · us-east-1</div>
+  </div>
+  <div class="box ext" style="left:1420px; top:350px; width:240px; height:260px;">
+    <div class="hdr">Clientes web</div>
+  </div>
+
+  <svg class="wires" viewBox="0 0 1680 790">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#232f3e"/></marker>
+      <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#c25e00"/></marker>
+    </defs>
+    <g fill="none" stroke="#232f3e" stroke-width="2">
+      <!-- 1 ESP32 -> IoT Core (esp32/pub) -->
+      <path d="M190,262 H432" marker-end="url(#a)"/>
+      <!-- 7 IoT Core -> ESP32 (esp32/sub) -->
+      <path d="M432,300 H190" marker-end="url(#a)"/>
+      <!-- 2 IoT Core -> Regla -->
+      <path d="M508,280 H640" marker-end="url(#a)"/>
+      <!-- 3 Regla -> Lambda inferencia -->
+      <path d="M720,280 H888" marker-end="url(#a)"/>
+      <!-- 4 Lambda inferencia -> DynamoDB -->
+      <path d="M950,376 V470" marker-end="url(#a)"/>
+      <!-- 5 Clientes -> Lambda API (GET) -->
+      <path d="M1420,486 H1238" marker-end="url(#a)"/>
+      <!-- 6 Clientes -> Lambda API (POST) -->
+      <path d="M1420,532 H1238" marker-end="url(#a)"/>
+      <!-- DynamoDB -> Lambda API (lectura) -->
+      <path d="M990,512 H1160" marker-end="url(#a)"/>
+      <!-- 6 Lambda API -> IoT Core (esp32/sub) -->
+      <path d="M1200,470 V128 H458 V240" marker-end="url(#a)"/>
+    </g>
+    <!-- OFF automatico (opcional) -->
+    <path d="M950,248 V178 H486 V240" fill="none" stroke="#c25e00" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ao)"/>
+  </svg>
+
+  <!-- Dispositivo -->
+  <div class="node" style="left:147px; top:222px;">
+    <img src="icons/AWSIoTThingTemperatureVibrationSensor.svg" alt="">
+    <b>ESP32</b><span>thing <code>esp32-26</code></span>
+  </div>
+  <div style="position:absolute; left:30px; top:360px; width:236px; text-align:center;">
+    <span class="chip">MPU6050 · aceleración</span>
+    <span class="chip">DS18B20 · temperatura</span>
+    <span class="chip">ACS712 · corriente</span>
+  </div>
+  <div class="node" style="left:147px; top:470px;">
+    <img src="icons/AWSIoTActuator.svg" alt="" style="width:52px;height:52px">
+    <b>Relé (GPIO26)</b><span>ventilador 12 V</span>
+  </div>
+
+  <!-- AWS -->
+  <div class="node" style="left:470px; top:242px;">
+    <img src="icons/AWSIoTCore.svg" alt="">
+    <b>AWS IoT Core</b><span>broker MQTT<br>TLS mutuo · puerto 8883</span>
+  </div>
+  <div class="node" style="left:680px; top:248px;">
+    <img src="icons/AWSIoTRule.svg" alt="" style="width:56px;height:56px">
+    <b>Regla de IoT</b><span><code>SELECT *, clientid(),<br>timestamp() FROM 'esp32/pub'</code></span>
+  </div>
+  <div class="node" style="left:950px; top:242px;">
+    <img src="icons/AWSLambda.svg" alt="">
+    <b>Lambda · inferencia</b><span>imagen de contenedor, 1 GB<br>Isolation Forest + contador</span>
+  </div>
+  <div class="node" style="left:950px; top:472px;">
+    <img src="icons/AmazonDynamoDB.svg" alt="">
+    <b>Amazon DynamoDB</b><span>ítems <code>STATE</code> y <code>PRED#…</code><br>TTL 30 días · 10 RCU / 10 WCU</span>
+  </div>
+  <div class="node" style="left:1200px; top:472px;">
+    <img src="icons/AWSLambda.svg" alt="">
+    <b>Lambda · API</b><span>Function URL pública<br>CORS · clave <code>X-Api-Key</code></span>
+  </div>
+
+  <!-- Clientes -->
+  <div class="node" style="left:1540px; top:420px; width:200px;">
+    <img src="icons/Users.svg" alt="">
+    <b>Monitor web</b><span>y gemelo digital 3D</span>
+  </div>
+
+  <!-- Etiquetas de flechas -->
+  <div class="lbl" style="left:200px; top:236px;"><span class="n">1</span><code>esp32/pub</code> · JSON cada ~2 s</div>
+  <div class="lbl" style="left:204px; top:308px;"><span class="n">8</span><code>esp32/sub</code><br><span style="padding-left:23px">ON / OFF</span></div>
+  <div class="lbl" style="left:540px; top:254px;"><span class="n">2</span></div>
+  <div class="lbl" style="left:748px; top:254px;"><span class="n">3</span>invoca (asíncrono)</div>
+  <div class="lbl" style="left:962px; top:410px;"><span class="n">4</span>guarda predicción<br>y último estado</div>
+  <div class="lbl" style="left:1036px; top:490px;"><span class="n">6</span>lee</div>
+  <div class="lbl" style="left:1244px; top:446px; font-size:12px;"><span class="n">5</span>GET /api/latest<br><span style="padding-left:23px">/api/history</span></div>
+  <div class="lbl" style="left:1244px; top:498px; font-size:12px;"><span class="n">7</span>POST /api/command</div>
+  <div class="lbl" style="left:760px; top:116px;"><span class="n">7</span>publica ON/OFF manual en <code>esp32/sub</code></div>
+  <div class="lbl o" style="left:560px; top:166px;">OFF automático tras 3 anomalías seguidas (solo si <code>EnableRemoteShutdown=true</code>)</div>
+
+  <!-- Soporte -->
+  <div class="divider" style="left:340px; top:650px; width:966px;"></div>
+  <div class="sup" style="left:360px; top:672px;"><img src="icons/AmazonElasticContainerRegistry.svg" alt=""><div><b>Amazon ECR</b>imagen de la Lambda de inferencia</div></div>
+  <div class="sup" style="left:690px; top:672px;"><img src="icons/AmazonCloudWatch.svg" alt=""><div><b>CloudWatch Logs</b>registros de ambas Lambdas</div></div>
+  <div class="sup" style="left:990px; top:672px;"><img src="icons/AWSIdentityandAccessManagement.svg" alt=""><div><b>IAM</b>roles de mínimo privilegio<br>(desplegado con AWS SAM)</div></div>
+</div>
+</body></html>
