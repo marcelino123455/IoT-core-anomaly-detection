@@ -5,6 +5,9 @@ El deploy a AWS lo hace otra persona: aquí solo se genera el archivo del modelo
 
 ---
 
+## 0. Antes de todo
+Las simulaciónde la vibración se hace con pinguinico y la del incremento de temperatura se hace acercando un cuaderno al ventilador (el aumento es bien chico de 0.6 aprox)
+
 ## 1. Dónde trabajar
 
 ```
@@ -220,6 +223,4 @@ Para grabar más capturas con el ESP32 conectado (Windows):
 ```powershell
 py ruta\a\iot-proyecto\scripts\interceptar_lecturas.py --port COM9 --out C:\capturas\nueva.csv --protocolo --ciclos 2
 ```
-
-Guía por pitidos: 1 pitido = no tocar (normal), 2 pitidos agudos = golpecitos en la base cada 1–2 s.
 Copiar el CSV resultante a `data/capturas/` y reentrenar.
