@@ -22,6 +22,7 @@ iot-proyecto/rodri/VentiSet_ML/VentiSet_ML/
 └── models/
     └── best_model.joblib   <- aquí sale el modelo entrenado
 ```
+Las capturas nuevas en teoría son suficientes, pero si puedes capturar más mejor. 
 
 Entra a esa carpeta antes de todo:
 
